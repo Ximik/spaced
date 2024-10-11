@@ -74,6 +74,9 @@ enum Commands {
         // Wallet json file to import
         path: PathBuf,
     },
+    /// List wallets
+    #[command(name = "listwallets")]
+    ListWallets,
     /// Export a wallet
     #[command(name = "getwalletinfo")]
     GetWalletInfo {
@@ -442,6 +445,10 @@ async fn handle_commands(
         Commands::ExportWallet { name } => {
             let result = cli.client.wallet_export(&name).await?;
             println!("{}", result);
+        }
+        Commands::ListWallets => {
+            let wallets = cli.client.wallet_list_wallets().await?;
+            println!("{}", serde_json::to_string_pretty(&wallets)?);
         }
         Commands::GetWalletInfo { name } => {
             let result = cli.client.wallet_get_info(&name).await?;

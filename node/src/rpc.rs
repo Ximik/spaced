@@ -123,6 +123,9 @@ pub trait Rpc {
     #[method(name = "walletimport")]
     async fn wallet_import(&self, content: &str) -> Result<(), ErrorObjectOwned>;
 
+    #[method(name = "walletlistwallets")]
+    async fn wallet_list_wallets(&self) -> Result<Vec<String>, ErrorObjectOwned>;
+
     #[method(name = "walletgetinfo")]
     async fn wallet_get_info(&self, name: &str) -> Result<WalletInfo, ErrorObjectOwned>;
 
@@ -478,6 +481,21 @@ impl WalletManager {
         Ok(())
     }
 
+    pub async fn list_wallets(&self) -> anyhow::Result<Vec<String>> {
+        let dirs = fs::read_dir(&self.data_dir)?
+            .map(|entry| entry.map(|e| e.path()))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .filter(|path| path.is_dir())
+            .filter_map(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .map(|s| s.to_string())
+            })
+            .collect();
+        Ok(dirs)
+    }
+
     async fn get_block_hash(
         &self,
         client: &reqwest::Client,
@@ -683,6 +701,12 @@ impl RpcServer for RpcServerImpl {
             .map_err(|error| {
                 ErrorObjectOwned::owned(RPC_WALLET_NOT_LOADED, error.to_string(), None::<String>)
             })
+    }
+
+    async fn wallet_list_wallets(&self) -> Result<Vec<String>, ErrorObjectOwned> {
+        self.wallet_manager.list_wallets().await.map_err(|error| {
+            ErrorObjectOwned::owned(-1, error.to_string(), None::<String>)
+        })
     }
 
     async fn wallet_get_info(&self, wallet: &str) -> Result<WalletInfo, ErrorObjectOwned> {
