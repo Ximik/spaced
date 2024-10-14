@@ -62,6 +62,12 @@ enum Commands {
         #[arg(default_value = "default")]
         name: String,
     },
+    /// Load a wallet
+    #[command(name = "unloadwallet")]
+    UnloadWallet {
+        #[arg(default_value = "default")]
+        name: String,
+    },
     /// Export a wallet
     #[command(name = "exportwallet")]
     ExportWallet {
@@ -436,6 +442,9 @@ async fn handle_commands(
         }
         Commands::LoadWallet { name } => {
             cli.client.wallet_load(&name).await?;
+        }
+        Commands::UnloadWallet { name } => {
+            cli.client.wallet_unload(&name).await?;
         }
         Commands::ImportWallet { path } => {
             let content =

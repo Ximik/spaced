@@ -120,6 +120,9 @@ pub trait Rpc {
     #[method(name = "walletload")]
     async fn wallet_load(&self, name: &str) -> Result<(), ErrorObjectOwned>;
 
+    #[method(name = "walletunload")]
+    async fn wallet_unload(&self, name: &str) -> Result<(), ErrorObjectOwned>;
+
     #[method(name = "walletimport")]
     async fn wallet_import(&self, content: &str) -> Result<(), ErrorObjectOwned>;
 
@@ -481,6 +484,12 @@ impl WalletManager {
         Ok(())
     }
 
+    pub async fn unload_wallet(&self, name: &str) -> anyhow::Result<()> {
+        let mut wallets = self.wallets.write().await;
+        wallets.remove(name);
+        Ok(())
+    }
+
     pub async fn list_wallets(&self) -> anyhow::Result<Vec<String>> {
         let dirs = fs::read_dir(&self.data_dir)?
             .map(|entry| entry.map(|e| e.path()))
@@ -688,6 +697,15 @@ impl RpcServer for RpcServerImpl {
     async fn wallet_load(&self, name: &str) -> Result<(), ErrorObjectOwned> {
         self.wallet_manager
             .load_wallet(&self.client, name)
+            .await
+            .map_err(|error| {
+                ErrorObjectOwned::owned(RPC_WALLET_NOT_LOADED, error.to_string(), None::<String>)
+            })
+    }
+
+    async fn wallet_unload(&self, name: &str) -> Result<(), ErrorObjectOwned> {
+        self.wallet_manager
+            .unload_wallet(name)
             .await
             .map_err(|error| {
                 ErrorObjectOwned::owned(RPC_WALLET_NOT_LOADED, error.to_string(), None::<String>)
